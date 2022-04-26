@@ -1,4 +1,4 @@
-# savegit.io
+# savegit.io ([Discord working group invite](https://discord.gg/MRJyav9GCf))
 
 ## Goals
 
@@ -9,4 +9,4 @@
 
 ## How you can help
 
-If you think you can help out at all, please join the Save git.io Discord group where we’re coordinating, discussing scraping strategies, etc.
+If you think you can help out at all, please join the [Save git.io Discord group](https://discord.gg/MRJyav9GCf) where we’re coordinating, discussing scraping strategies, etc.
