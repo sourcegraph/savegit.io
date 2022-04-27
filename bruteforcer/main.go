@@ -18,7 +18,7 @@ func main() {
 	end, _ := strconv.ParseUint(os.Args[2], 10, 64)
 	fmt.Printf("info: using range %v-%v\n", start, end)
 
-	go resolver.ResolveRange(0, 62*62*62*62-1, output)
+	go resolver.ResolveRange(start, end, output)
 
 	go func() {
 		for {
