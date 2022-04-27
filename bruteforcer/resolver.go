@@ -67,22 +67,31 @@ func newResolver() *Resolver {
 
 // GetRPS returns req/sec
 func (r *Resolver) GetRPS() float64 {
-	return float64(r.RequestCounter) / time.Since(r.startTime).Seconds()
+	requestCounter := atomic.AddUint64(&r.RequestCounter, 0)
+	return float64(requestCounter) / time.Since(r.startTime).Seconds()
 }
 
 func (r *Resolver) printStats() {
+	totalCounter := atomic.AddUint64(&r.TotalCounter, 0)
+	totalRedirect := atomic.AddUint64(&r.TotalRedirect, 0)
+	total404 := atomic.AddUint64(&r.Total404, 0)
+	requestCounter := atomic.AddUint64(&r.RequestCounter, 0)
+	requestErrorCounter := atomic.AddUint64(&r.RequestErrorCounter, 0)
+	requestSuccess404Counter := atomic.AddUint64(&r.RequestSuccess404Counter, 0)
+	requestSuccessCounter := atomic.AddUint64(&r.RequestSuccessCounter, 0)
+
 	fmt.Println("")
 	fmt.Printf("stats: RPS: %v\n", r.GetRPS())
 	fmt.Printf("stats: %v total, %v total redirects, %v total 404s\n",
-		r.TotalCounter,
-		r.TotalRedirect,
-		r.Total404,
+		totalCounter,
+		totalRedirect,
+		total404,
 	)
 	fmt.Printf("stats: %v requests, %v error, %v 404, %v success\n",
-		r.RequestCounter,
-		r.RequestErrorCounter,
-		r.RequestSuccess404Counter,
-		r.RequestSuccessCounter,
+		requestCounter,
+		requestErrorCounter,
+		requestSuccess404Counter,
+		requestSuccessCounter,
 	)
 }
 
@@ -100,9 +109,9 @@ func (r *Resolver) read() map[string]struct{} {
 		split := strings.Split(line, ",")
 		url, redirectURL := split[0], split[1]
 		if redirectURL == "" {
-			r.Total404 += 1
+			atomic.AddUint64(&r.Total404, 1)
 		} else {
-			r.TotalRedirect += 1
+			atomic.AddUint64(&r.TotalRedirect, 1)
 		}
 		results[url] = struct{}{}
 	}
@@ -121,9 +130,9 @@ func (r *Resolver) finished(resolved ResolvedShortlink) {
 	defer r.saveLock.Unlock()
 	r.toSave[resolved.url] = resolved
 	if resolved.resolvedURL == "" {
-		r.Total404 += 1
+		atomic.AddUint64(&r.Total404, 1)
 	} else {
-		r.TotalRedirect += 1
+		atomic.AddUint64(&r.TotalRedirect, 1)
 	}
 	if len(r.toSave) > 10000 {
 		f, err := os.OpenFile("data.txt", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
