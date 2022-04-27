@@ -261,20 +261,20 @@ func (r *Resolver) ResolveRange(start uint64, end uint64) {
 		r.startWorker(workChannel, output)
 	}
 
-	waitFor := 0
+	var wg sync.WaitGroup
+	go func() {
+		for {
+			resolved := <-output
+			_ = resolved
+			wg.Done()
+		}
+	}()
 	for i := start; i < end; i++ {
-		waitFor++
+		wg.Add(1)
 		url := fmt.Sprintf("https://git.io/%s", encodeID(i))
 		workChannel <- url
 	}
 
-	for {
-		resolved := <-output
-		_ = resolved
-		waitFor--
-		if (waitFor == 0) {
-			break
-		}
-	}
+	wg.Wait()
 	r.flush()
 }
