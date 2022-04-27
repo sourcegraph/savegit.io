@@ -245,7 +245,9 @@ func (r *Resolver) ResolveRange(start uint64, end uint64) {
 		resolved := <-output
 		_ = resolved
 		waitFor--
-		if (waitFor == 0) break
+		if (waitFor == 0) {
+			break
+		}
 	}
 	r.flush()
 }
