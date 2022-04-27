@@ -11,8 +11,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	// "go.mercari.io/go-dnscache"
-	// "go.uber.org/zap"
+	"go.mercari.io/go-dnscache"
+	"go.uber.org/zap"
 )
 
 const b62Alphabet = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
@@ -46,6 +46,7 @@ type Resolver struct {
 	RequestSuccess404Counter uint64
 	RequestErrorCounter      uint64
 	lastRequestCounter uint64
+	lastCountTime time.Time
 	startTime                time.Time
 	workerCount              int
 
@@ -60,6 +61,7 @@ func newResolver() *Resolver {
 	r := &Resolver{
 		workerCount: 1500,
 		startTime:   time.Now(),
+		lastCountTime: time.Now(),
 		toSave:      map[string]ResolvedShortlink{},
 	}
 	r.finishedAlready = r.read()
@@ -72,8 +74,8 @@ func (r *Resolver) GetRPS() float64 {
 	numRequests := requestCounter - r.lastRequestCounter
 	r.lastRequestCounter = requestCounter
 
-	elapsed := time.Since(r.startTime).Seconds()
-	r.startTime = time.Now()
+	elapsed := time.Since(r.lastCountTime).Seconds()
+	r.lastCountTime = time.Now()
 	return float64(numRequests) / elapsed
 }
 
