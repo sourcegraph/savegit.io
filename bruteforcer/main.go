@@ -17,8 +17,6 @@ func main() {
 	end, _ := strconv.ParseUint(os.Args[2], 10, 64)
 	fmt.Printf("info: using range %v-%v\n", start, end)
 
-	go resolver.ResolveRange(start, end)
-
 	go func() {
 		for {
 			time.Sleep(5 * time.Second)
@@ -37,4 +35,6 @@ func main() {
 			)
 		}
 	}()
+
+	resolver.ResolveRange(start, end)
 }
