@@ -126,6 +126,25 @@ func (r *Resolver) finished(resolved ResolvedShortlink) {
 	}
 }
 
+func (r *Resolver) flush() {
+	r.saveLock.Lock()
+	defer r.saveLock.Unlock()
+
+	f, err := os.OpenFile("data.txt", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		fmt.Println("error: save:", err)
+		return
+	}
+	defer f.Close()
+	for _, entry := range r.toSave {
+		if _, err := f.WriteString(fmt.Sprintf("%s,%s\n", trim(entry.url), entry.resolvedURL)); err != nil {
+			fmt.Println("error: save:", err)
+			return
+		}
+	}
+	r.toSave = map[string]ResolvedShortlink{}
+}
+
 func trim(u string) string {
 	return strings.TrimPrefix(u, "https://git.io/")
 }
@@ -218,4 +237,5 @@ func (r *Resolver) ResolveRange(start uint64, end uint64, outputChannel chan Res
 		url := fmt.Sprintf("https://git.io/%s", encodeID(i))
 		workChannel <- url
 	}
+	r.flush()
 }
