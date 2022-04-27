@@ -70,6 +70,22 @@ func (r *Resolver) GetRPS() float64 {
 	return float64(r.RequestCounter) / time.Since(r.startTime).Seconds()
 }
 
+func (r *Resolver) printStats() {
+	fmt.Println("")
+	fmt.Printf("stats: RPS: %v\n", r.GetRPS())
+	fmt.Printf("stats: %v total, %v total redirects, %v total 404s\n",
+		r.TotalCounter,
+		r.TotalRedirect,
+		r.Total404,
+	)
+	fmt.Printf("stats: %v requests, %v error, %v 404, %v success\n",
+		r.RequestCounter,
+		r.RequestErrorCounter,
+		r.RequestSuccess404Counter,
+		r.RequestSuccessCounter,
+	)
+}
+
 func (r *Resolver) read() map[string]struct{} {
 	results := map[string]struct{}{}
 	file, err := os.Open("data.txt")
@@ -129,6 +145,7 @@ func (r *Resolver) finished(resolved ResolvedShortlink) {
 func (r *Resolver) flush() {
 	r.saveLock.Lock()
 	defer r.saveLock.Unlock()
+	fmt.Println("write", len(r.toSave))
 
 	f, err := os.OpenFile("data.txt", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
@@ -197,11 +214,13 @@ func (r *Resolver) startWorker(queue chan string, output chan ResolvedShortlink)
 				}
 
 				atomic.AddUint64(&r.RequestSuccessCounter, 1)
-				output <- ResolvedShortlink{
+				resolved := ResolvedShortlink{
 					isError:     false,
 					url:         url,
 					resolvedURL: resolvedURL.String(),
 				}
+				r.finished(resolved)
+				output <- resolved
 			} else if resp.StatusCode == 404 {
 				atomic.AddUint64(&r.RequestSuccess404Counter, 1)
 				resolved := ResolvedShortlink{
@@ -218,7 +237,6 @@ func (r *Resolver) startWorker(queue chan string, output chan ResolvedShortlink)
 				resolved := ResolvedShortlink{
 					isError: true,
 				}
-				r.finished(resolved)
 				output <- resolved
 			}
 		}
@@ -236,9 +254,9 @@ func (r *Resolver) ResolveRange(start uint64, end uint64) {
 
 	waitFor := 0
 	for i := start; i < end; i++ {
+		waitFor++
 		url := fmt.Sprintf("https://git.io/%s", encodeID(i))
 		workChannel <- url
-		waitFor++
 	}
 
 	for {

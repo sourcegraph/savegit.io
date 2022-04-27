@@ -20,21 +20,12 @@ func main() {
 	go func() {
 		for {
 			time.Sleep(5 * time.Second)
-			fmt.Println("")
-			fmt.Printf("stats: RPS: %v\n", resolver.GetRPS())
-			fmt.Printf("stats: %v total, %v total redirects, %v total 404s\n",
-				resolver.TotalCounter,
-				resolver.TotalRedirect,
-				resolver.Total404,
-			)
-			fmt.Printf("stats: %v requests, %v error, %v 404, %v success\n",
-				resolver.RequestCounter,
-				resolver.RequestErrorCounter,
-				resolver.RequestSuccess404Counter,
-				resolver.RequestSuccessCounter,
-			)
+			resolver.printStats()
 		}
 	}()
 
 	resolver.ResolveRange(start, end)
+
+	resolver.printStats()
+	fmt.Println("done!")
 }
