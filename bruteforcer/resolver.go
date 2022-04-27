@@ -11,8 +11,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	"go.mercari.io/go-dnscache"
-	"go.uber.org/zap"
+	// "go.mercari.io/go-dnscache"
+	// "go.uber.org/zap"
 )
 
 const b62Alphabet = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
@@ -45,6 +45,7 @@ type Resolver struct {
 	RequestSuccessCounter    uint64
 	RequestSuccess404Counter uint64
 	RequestErrorCounter      uint64
+	lastRequestCounter uint64
 	startTime                time.Time
 	workerCount              int
 
@@ -68,6 +69,16 @@ func newResolver() *Resolver {
 // GetRPS returns req/sec
 func (r *Resolver) GetRPS() float64 {
 	requestCounter := atomic.AddUint64(&r.RequestCounter, 0)
+	numRequests := requestCounter - r.lastRequestCounter
+	r.lastRequestCounter = requestCounter
+
+	elapsed := time.Since(r.startTime).Seconds()
+	r.startTime = time.Now()
+	return float64(numRequests) / elapsed
+}
+
+func (r *Resolver) GetAvgRPS() float64 {
+	requestCounter := atomic.AddUint64(&r.RequestCounter, 0)
 	return float64(requestCounter) / time.Since(r.startTime).Seconds()
 }
 
@@ -81,7 +92,7 @@ func (r *Resolver) printStats() {
 	requestSuccessCounter := atomic.AddUint64(&r.RequestSuccessCounter, 0)
 
 	fmt.Println("")
-	fmt.Printf("stats: RPS: %v\n", r.GetRPS())
+	fmt.Printf("stats: RPS: %v, AVG: %v\n", r.GetRPS(), r.GetAvgRPS())
 	fmt.Printf("stats: %v total, %v total redirects, %v total 404s\n",
 		totalCounter,
 		totalRedirect,
@@ -185,10 +196,10 @@ func (r *Resolver) startWorker(queue chan string, output chan ResolvedShortlink)
 			},
 			Transport: &http.Transport{
 				MaxIdleConnsPerHost: 1024,
-				TLSHandshakeTimeout: 20 * time.Second,
+				TLSHandshakeTimeout: 10 * time.Second,
 				DialContext:         dnscache.DialFunc(resolver, nil),
 			},
-			Timeout: 20 * time.Second,
+			Timeout: 10 * time.Second,
 		}
 
 		for {
