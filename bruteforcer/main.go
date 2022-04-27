@@ -12,13 +12,12 @@ func main() {
 	rand.Seed(time.Now().UTC().UnixNano())
 
 	resolver := newResolver()
-	output := make(chan ResolvedShortlink, 8192)
 
 	start, _ := strconv.ParseUint(os.Args[1], 10, 64)
 	end, _ := strconv.ParseUint(os.Args[2], 10, 64)
 	fmt.Printf("info: using range %v-%v\n", start, end)
 
-	go resolver.ResolveRange(start, end, output)
+	go resolver.ResolveRange(start, end)
 
 	go func() {
 		for {
@@ -38,9 +37,4 @@ func main() {
 			)
 		}
 	}()
-
-	for {
-		resolved := <-output
-		_ = resolved
-	}
 }

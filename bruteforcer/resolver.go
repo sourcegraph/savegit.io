@@ -226,16 +226,26 @@ func (r *Resolver) startWorker(queue chan string, output chan ResolvedShortlink)
 }
 
 // ResolveRange resolves (bruteforce) a range of git.io shortlinks.
-func (r *Resolver) ResolveRange(start uint64, end uint64, outputChannel chan ResolvedShortlink) {
+func (r *Resolver) ResolveRange(start uint64, end uint64) {
 	workChannel := make(chan string, 8192)
 
+	output := make(chan ResolvedShortlink, 8192)
 	for i := 0; i < r.workerCount; i++ {
-		r.startWorker(workChannel, outputChannel)
+		r.startWorker(workChannel, output)
 	}
 
+	waitFor := 0
 	for i := start; i < end; i++ {
 		url := fmt.Sprintf("https://git.io/%s", encodeID(i))
 		workChannel <- url
+		waitFor++
+	}
+
+	for {
+		resolved := <-output
+		_ = resolved
+		waitFor--
+		if (waitFor == 0) break
 	}
 	r.flush()
 }
